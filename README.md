@@ -1,4 +1,5 @@
 # Web Vulnerability Scanner
+Python | Cybersecurity Tool | Educational Project
 
 ## Overview
 
@@ -38,35 +39,37 @@ The tool performs automated testing and generates a vulnerability report after e
 
 ---
 
+
 ## Project Structure
-web_vulnerability_scanner
+
+```
+web_vuln_scanner
 │
 ├── modules
-│ ├── bruteforce_detector.py
-│ ├── colors.py
-│ ├── directory_scan.py
-│ ├── header_check.py
-│ ├── sensitive_files.py
-│ ├── sql_injection_detector.py
-│ └── xss_detector.py
+│   ├── bruteforce_detector.py
+│   ├── colors.py
+│   ├── directory_scan.py
+│   ├── header_check.py
+│   ├── sensitive_files.py
+│   ├── sql_injection_detector.py
+│   └── xss_detector.py
 │
 ├── reports
-│ └── scan_report.txt
+│   └── scan_report.txt
 │
 ├── screenshots
-│ ├── scanner_start.png
-│ ├── headers.png
-│ ├── directory_discovery.png
-│ ├── xss_testing.png
-│ ├── sql_testing.png
-│ ├── scanner_summary.png
-│ └── scan_report.png
+│   ├── scanner_start.png
+│   ├── headers.png
+│   ├── directory_discovery.png
+│   ├── xss_testing.png
+│   ├── sql_testing.png
+│   ├── scanner_summary.png
+│   └── scan_report.png
 │
 ├── scanner.py
 ├── requirements.txt
 └── README.md
-
----
+```
 
 # How the Scanner Works
 
@@ -89,12 +92,19 @@ web_vulnerability_scanner
 
 Run the scanner:
 
-Enter the target URL when prompted:
+```
+python3 scanner.py
+```
 
+Enter the target URL when prompted.
 
 The scanner will analyze the website and display vulnerability results.
 
 ---
+
+
+Example target:
+https://example.com
 
 # Example Scan Output
 
@@ -159,7 +169,7 @@ The scanner can identify issues such as:
 # Report Generation
 
 After the scan completes, a report is automatically saved in:
-
+reports/scan_report.txt
 
 This report contains all detected vulnerabilities along with their severity levels.
 
