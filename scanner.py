@@ -9,6 +9,7 @@ from modules.xss_detector import detect_xss
 from modules.sql_injection_detector import detect_sql_injection
 from modules.bruteforce_detector import brute_force_login
 from reports.report_generator import generate_html_report
+from modules.crawler import crawl
 
 def start_scan():
 
