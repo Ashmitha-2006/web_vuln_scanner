@@ -6,32 +6,69 @@ Target URL : https://example.com
 Scan Time  : 2026-03-14 17:40:57
 
 =========================================
-SCAN RESULTS
+SUMMARY
 =========================================
 
-Security Header Analysis
-------------------------
-INFO: Server detected cloudflare
-MEDIUM: Missing header Content-Security-Policy
-MEDIUM: Missing header X-Frame-Options
-MEDIUM: Missing header Strict-Transport-Security
-MEDIUM: Missing header X-XSS-Protection
-MEDIUM: Missing header X-Content-Type-Options
+Total Vulnerabilities Found : 5
 
-Directory Discovery
--------------------
+HIGH    : 0
+MEDIUM  : 5
+LOW     : 0
+INFO    : 2
 
-Sensitive File Exposure Test
------------------------------
+Risk Level : MEDIUM ⚠️
 
-XSS Vulnerability Test
-----------------------
+=========================================
+DETAILED FINDINGS
+=========================================
+
+[1] Security Header Analysis
+----------------------------
+INFO: Server detected: Cloudflare
+
+MEDIUM: Missing Content-Security-Policy
+→ Risk: Allows XSS attacks
+→ Recommendation: Implement CSP header
+
+MEDIUM: Missing X-Frame-Options
+→ Risk: Clickjacking attacks
+→ Recommendation: Use DENY or SAMEORIGIN
+
+MEDIUM: Missing Strict-Transport-Security
+→ Risk: SSL stripping attacks
+→ Recommendation: Enable HSTS
+
+MEDIUM: Missing X-XSS-Protection
+→ Risk: Browser XSS filtering disabled
+→ Recommendation: Enable XSS protection
+
+MEDIUM: Missing X-Content-Type-Options
+→ Risk: MIME sniffing attacks
+→ Recommendation: Set to nosniff
+
+-----------------------------------------
+
+[2] Directory Discovery
+-----------------------
+INFO: No exposed directories found
+
+-----------------------------------------
+
+[3] Sensitive File Exposure
+---------------------------
+INFO: No sensitive files detected
+
+-----------------------------------------
+
+[4] XSS Vulnerability Test
+--------------------------
 INFO: No reflected XSS detected
 
-SQL Injection Test
-------------------
-INFO: No SQL Injection indicators found
+-----------------------------------------
 
+[5] SQL Injection Test
+----------------------
+INFO: No SQL Injection indicators found
 
 =========================================
 SCAN COMPLETED
