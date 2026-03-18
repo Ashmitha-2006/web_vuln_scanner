@@ -18,8 +18,8 @@ def start_scan():
 
     target = input("Enter target URL (example: https://example.com): ").strip()
 
-    # Ask for brute force option
-    use_brute = input("Do you want to run brute-force login attack? (y/n): ").lower()
+    # Improved input handling
+    use_brute = input("Do you want to run brute-force login attack? (y/n): ").strip().lower()
 
     # URL normalization
     if not target.startswith("http"):
@@ -34,45 +34,52 @@ def start_scan():
 
     os.makedirs("reports", exist_ok=True)
 
-    report = open("reports/scan_report.txt", "w")
+    # Safer file handling
+    with open("reports/scan_report.txt", "w") as report:
 
-    report.write("=========================================\n")
-    report.write("        WEB VULNERABILITY REPORT\n")
-    report.write("=========================================\n\n")
+        report.write("=========================================\n")
+        report.write("        WEB VULNERABILITY REPORT\n")
+        report.write("=========================================\n\n")
 
-    report.write(f"Target URL : {target}\n")
-    report.write(f"Scan Time  : {timestamp}\n\n")
+        report.write(f"Target URL : {target}\n")
+        report.write(f"Scan Time  : {timestamp}\n\n")
 
-    report.write("=========================================\n")
-    report.write("SCAN RESULTS\n")
-    report.write("=========================================\n\n")
+        report.write("=========================================\n")
+        report.write("SCAN RESULTS\n")
+        report.write("=========================================\n\n")
 
-    # Run modules
-    check_headers(target, report)
-    scan_directories(target, report)
-    check_sensitive_files(target, report)
-    detect_xss(target, report)
-    detect_sql_injection(target, report)
+        # Run modules
+        check_headers(target, report)
+        scan_directories(target, report)
+        check_sensitive_files(target, report)
+        detect_xss(target, report)
+        detect_sql_injection(target, report)
 
-    # Optional brute-force attack
-    if use_brute == "y":
-        login_url = input("\nEnter login URL (example: https://example.com/login): ").strip()
+        # Optional brute-force attack
+        if use_brute == "y":
+            print("\n=================================")
+            print("     BRUTE FORCE MODULE")
+            print("=================================\n")
 
-        usernames = input("Enter usernames (comma-separated): ").split(",")
-        passwords = input("Enter passwords (comma-separated): ").split(",")
+            login_url = input("Enter login URL (example: https://example.com/login): ").strip()
+            print(f"[+] Target Login URL: {login_url}")
 
-        usernames = [u.strip() for u in usernames]
-        passwords = [p.strip() for p in passwords]
+            usernames = input("Enter usernames (comma-separated): ").split(",")
+            passwords = input("Enter passwords (comma-separated): ").split(",")
 
-        print("\n[+] Running Brute-Force Module...\n")
-        brute_force_login(login_url, usernames, passwords)
+            usernames = [u.strip() for u in usernames]
+            passwords = [p.strip() for p in passwords]
 
-    report.write("\n=========================================\n")
-    report.write("SCAN COMPLETED\n")
-    report.write("=========================================\n")
+            print("\n[+] Running Brute-Force Module...\n")
+            brute_force_login(login_url, usernames, passwords)
 
-    report.close()
+            print("\n[✓] Brute-force module completed\n")
 
+        report.write("\n=========================================\n")
+        report.write("SCAN COMPLETED\n")
+        report.write("=========================================\n")
+
+    # Read report for summary
     with open("reports/scan_report.txt", "r") as f:
         data = f.read()
 
