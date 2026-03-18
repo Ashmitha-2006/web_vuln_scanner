@@ -1,5 +1,6 @@
 import requests
 import urllib3
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 from modules.colors import Colors
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -8,6 +9,26 @@ headers = {
     "User-Agent": "Mozilla/5.0"
 }
 
+def inject_payload(url, param, payload):
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    query[param] = payload
+
+    new_query = urlencode(query, doseq=True)
+
+    new_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
+
+    return new_url
+
+
 def detect_xss(url, report):
 
     print(f"\n{Colors.BLUE}[+] Testing for XSS vulnerabilities...{Colors.RESET}\n")
@@ -15,45 +36,65 @@ def detect_xss(url, report):
     report.write("XSS Vulnerability Test\n")
     report.write("----------------------\n")
 
-    # XSS payloads
+    # 🔥 Expanded payloads (realistic + bypass tricks)
     payloads = [
         "<script>alert(1)</script>",
         "\"><script>alert(1)</script>",
         "<img src=x onerror=alert(1)>",
-        "<svg/onload=alert(1)>"
+        "<svg/onload=alert(1)>",
+        "<body onload=alert(1)>",
+        "'><svg/onload=alert(1)>",
+        "<iframe src=javascript:alert(1)>",
+        "<details open ontoggle=alert(1)>"
     ]
 
     try:
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
 
-        # Determine parameter style
-        if "?" in url:
-            base_url = url.split("=")[0] + "="
-        else:
-            base_url = url + "?q="
+        # If no params → create default
+        if not params:
+            params = {"q": ["test"]}
 
-        for payload in payloads:
+        for param in params:
 
-            test_url = base_url + payload
+            print(f"{Colors.CYAN}[INFO]{Colors.RESET} Testing parameter: {param}")
 
-            print(f"{Colors.YELLOW}[TESTING]{Colors.RESET} {test_url}")
+            for payload in payloads:
 
-            response = requests.get(test_url, headers=headers, timeout=15, verify=False)
+                # 🔁 Normal payload
+                test_url = inject_payload(url, param, payload)
 
-            if payload.lower() in response.text.lower():
+                print(f"{Colors.YELLOW}[TESTING]{Colors.RESET} {test_url}")
 
-                print(f"{Colors.RED}[HIGH]{Colors.RESET} Possible XSS detected")
-                print(f"{Colors.CYAN}Payload used: {payload}{Colors.RESET}")
+                response = requests.get(test_url, headers=headers, timeout=15, verify=False)
+                content = response.text.lower()
 
-                report.write("HIGH: Possible reflected XSS detected\n")
-                report.write(f"Payload used: {payload}\n")
-                report.write("Detection Mechanism:\n")
-                report.write("- Injected JavaScript payload\n")
-                report.write("- Payload reflected in response\n\n")
+                # 🔴 1. Direct reflection
+                if payload.lower() in content:
+                    print(f"{Colors.RED}[HIGH]{Colors.RESET} Reflected XSS detected")
+                    print(f"{Colors.CYAN}Payload: {payload}{Colors.RESET}")
 
-                return
+                    report.write("HIGH: Reflected XSS detected\n")
+                    report.write(f"Parameter: {param}\n")
+                    report.write(f"Payload: {payload}\n\n")
+                    return
+
+                # 🟡 2. Encoded reflection check
+                encoded_payload = quote(payload)
+                if encoded_payload.lower() in content:
+                    print(f"{Colors.YELLOW}[MEDIUM]{Colors.RESET} Possible XSS (encoded reflection)")
+                    print(f"{Colors.CYAN}Payload: {payload}{Colors.RESET}")
+
+                    report.write("MEDIUM: Possible XSS (encoded reflection)\n")
+                    report.write(f"Parameter: {param}\n")
+                    report.write(f"Payload: {payload}\n\n")
+                    return
 
         print(f"{Colors.GREEN}[INFO]{Colors.RESET} No reflected XSS detected")
         report.write("INFO: No reflected XSS detected\n\n")
 
     except requests.exceptions.RequestException as e:
         print("XSS test error:", e)
+
+           
