@@ -8,8 +8,10 @@ from modules.sensitive_files import check_sensitive_files
 from modules.xss_detector import detect_xss
 from modules.sql_injection_detector import detect_sql_injection
 from modules.bruteforce_detector import brute_force_login
-from reports.report_generator import generate_html_report
 from modules.crawler import crawl
+
+from reports.report_generator import generate_html_report
+
 
 def start_scan():
 
@@ -19,23 +21,33 @@ def start_scan():
 
     target = input("Enter target URL (example: https://example.com): ").strip()
 
-    # Improved input handling
     use_brute = input("Do you want to run brute-force login attack? (y/n): ").strip().lower()
 
-    # URL normalization
+    # Normalize URL
     if not target.startswith("http"):
         target = "http://" + target
 
     print("\nStarting scan on:", target)
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # Start scan timer
     start_time = time.time()
 
     os.makedirs("reports", exist_ok=True)
 
-    # Safer file handling
+    # 🔥 Results for HTML report
+    results = {
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0,
+        "details": ""
+    }
+
+    # 🔥 CRAWLER ADDED HERE
+    print("\n[+] Crawling target...\n")
+    urls = crawl(target)
+    urls.insert(0, target)
+
     with open("reports/scan_report.txt", "w") as report:
 
         report.write("=========================================\n")
@@ -49,62 +61,85 @@ def start_scan():
         report.write("SCAN RESULTS\n")
         report.write("=========================================\n\n")
 
-        # Run modules
-        check_headers(target, report)
-        scan_directories(target, report)
-        check_sensitive_files(target, report)
-        detect_xss(target, report)
-        detect_sql_injection(target, report)
+        # 🔥 LOOP THROUGH ALL URLS
+        for url in urls:
 
-        # Optional brute-force attack
-        if use_brute == "y":
-            print("\n=================================")
-            print("     BRUTE FORCE MODULE")
-            print("=================================\n")
+            print(f"\n[+] Scanning: {url}\n")
 
-            login_url = input("Enter login URL (example: https://example.com/login): ").strip()
-            print(f"[+] Target Login URL: {login_url}")
+            report.write(f"\n[+] Scanning: {url}\n\n")
 
-            usernames = input("Enter usernames (comma-separated): ").split(",")
-            passwords = input("Enter passwords (comma-separated): ").split(",")
+            # Run modules
+            check_headers(url, report)
+            scan_directories(url, report)
+            check_sensitive_files(url, report)
+            detect_xss(url, report)
+            detect_sql_injection(url, report)
 
-            usernames = [u.strip() for u in usernames]
-            passwords = [p.strip() for p in passwords]
-
-            print("\n[+] Running Brute-Force Module...\n")
-            brute_force_login(login_url, usernames, passwords)
-
-            print("\n[✓] Brute-force module completed\n")
-
-        report.write("\n=========================================\n")
-        report.write("SCAN COMPLETED\n")
-        report.write("=========================================\n")
-
-    # Read report for summary
+    # 🔥 SUMMARY FROM TEXT REPORT
     with open("reports/scan_report.txt", "r") as f:
         data = f.read()
 
-    high = data.count("HIGH:")
-    medium = data.count("MEDIUM:")
-    low = data.count("LOW:")
-    info = data.count("INFO:")
+    results["high"] = data.count("HIGH:")
+    results["medium"] = data.count("MEDIUM:")
+    results["low"] = data.count("LOW:")
+    results["info"] = data.count("INFO:")
 
+    # 🔥 Convert findings into HTML cards
+    lines = data.split("\n")
+    for line in lines:
+        if "HIGH:" in line:
+            results["details"] += f"<div class='card high'>{line}</div>"
+        elif "MEDIUM:" in line:
+            results["details"] += f"<div class='card medium'>{line}</div>"
+        elif "LOW:" in line:
+            results["details"] += f"<div class='card low'>{line}</div>"
+        elif "INFO:" in line:
+            results["details"] += f"<div class='card info'>{line}</div>"
+
+    # 🔥 GENERATE HTML REPORT
+    generate_html_report(
+        "reports/report.html",
+        target,
+        timestamp,
+        results
+    )
+
+    # 🔥 OPTIONAL BRUTE FORCE (kept same)
+    if use_brute == "y":
+        print("\n=================================")
+        print("     BRUTE FORCE MODULE")
+        print("=================================\n")
+
+        login_url = input("Enter login URL (example: https://example.com/login): ").strip()
+
+        usernames = input("Enter usernames (comma-separated): ").split(",")
+        passwords = input("Enter passwords (comma-separated): ").split(",")
+
+        usernames = [u.strip() for u in usernames]
+        passwords = [p.strip() for p in passwords]
+
+        print("\n[+] Running Brute-Force Module...\n")
+        brute_force_login(login_url, usernames, passwords)
+
+        print("\n[✓] Brute-force module completed\n")
+
+    # 🔥 PRINT SUMMARY
     print("\n==========================")
     print("       SCAN SUMMARY")
     print("==========================")
-    print(f"HIGH vulnerabilities   : {high}")
-    print(f"MEDIUM vulnerabilities : {medium}")
-    print(f"LOW findings           : {low}")
-    print(f"INFO messages          : {info}")
+    print(f"HIGH vulnerabilities   : {results['high']}")
+    print(f"MEDIUM vulnerabilities : {results['medium']}")
+    print(f"LOW findings           : {results['low']}")
+    print(f"INFO messages          : {results['info']}")
 
-    # End timer
     end_time = time.time()
     scan_duration = round(end_time - start_time, 2)
 
     print(f"\nScan duration          : {scan_duration} seconds")
 
     print("\n[✓] Vulnerability scan completed successfully")
-    print("[+] Report saved to reports/scan_report.txt")
+    print("[+] Text report saved to reports/scan_report.txt")
+    print("[+] HTML report saved to reports/report.html")
 
 
 if __name__ == "__main__":
