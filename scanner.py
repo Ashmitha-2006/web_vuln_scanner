@@ -7,6 +7,7 @@ from modules.directory_scan import scan_directories
 from modules.sensitive_files import check_sensitive_files
 from modules.xss_detector import detect_xss
 from modules.sql_injection_detector import detect_sql_injection
+from modules.bruteforce_detector import brute_force_login
 
 
 def start_scan():
@@ -16,6 +17,9 @@ def start_scan():
     print("=================================\n")
 
     target = input("Enter target URL (example: https://example.com): ").strip()
+
+    # Ask for brute force option
+    use_brute = input("Do you want to run brute-force login attack? (y/n): ").lower()
 
     # URL normalization
     if not target.startswith("http"):
@@ -49,6 +53,19 @@ def start_scan():
     check_sensitive_files(target, report)
     detect_xss(target, report)
     detect_sql_injection(target, report)
+
+    # Optional brute-force attack
+    if use_brute == "y":
+        login_url = input("\nEnter login URL (example: https://example.com/login): ").strip()
+
+        usernames = input("Enter usernames (comma-separated): ").split(",")
+        passwords = input("Enter passwords (comma-separated): ").split(",")
+
+        usernames = [u.strip() for u in usernames]
+        passwords = [p.strip() for p in passwords]
+
+        print("\n[+] Running Brute-Force Module...\n")
+        brute_force_login(login_url, usernames, passwords)
 
     report.write("\n=========================================\n")
     report.write("SCAN COMPLETED\n")
